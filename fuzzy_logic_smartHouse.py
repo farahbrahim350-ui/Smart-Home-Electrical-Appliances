@@ -50,14 +50,14 @@ def predict_energy_consumption(historical_data, temperature, hour, day_of_week, 
     # Pattern hebdomadaire (weekend vs week)
     week_factor = 1.2 if day_of_week in [5, 6] else 1.0
     
-    # Effet température (climatisation/chauffage)
+   # Temperature effect (air conditioning/heating)
     temp_factor = 1.0
     if temperature < 15:
         temp_factor = 1.3  # Chauffage
     elif temperature > 28:
         temp_factor = 1.4  # Climatisation
     
-    # Tendance historique (moyenne des dernières 24h)
+    # Tendance historique (average of the last 24 hours)
     if len(historical_data) > 0:
         trend = np.mean(historical_data[-24:]) / base_consumption
     else:
@@ -605,6 +605,7 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
+
 
 
 
