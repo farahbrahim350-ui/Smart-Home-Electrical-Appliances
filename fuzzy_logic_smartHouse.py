@@ -75,7 +75,7 @@ def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_co
     """
     base_generation = 60
     
-    # Pattern solaire selon l'heure
+# Solar pattern according to the time
     if 6 <= hour <= 8:
         time_factor = 0.4
     elif 9 <= hour <= 16:
@@ -114,7 +114,7 @@ reduction = ctrl.Consequent(np.arange(0, 101, 1), 'Appliance_Reduction')
 battery_action = ctrl.Consequent(np.arange(-100, 101, 1), 'Battery_Action')
 grid_action = ctrl.Consequent(np.arange(-100, 101, 1), 'Grid_Action')
 
-# ==================== MEMBERSHIP FUNCTIONS (DOCUMENT EXACT) ====================
+# ==================== MEMBERSHIP FUNCTIONS  ====================
 
 # Energy Demand (0-100 scale)
 energy['Low'] = fuzz.trimf(energy.universe, [0, 0, 30])
@@ -605,4 +605,5 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
+
 
