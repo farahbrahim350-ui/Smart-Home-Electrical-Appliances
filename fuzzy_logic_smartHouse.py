@@ -160,7 +160,7 @@ grid_action['Sell'] = fuzz.trimf(grid_action.universe, [50, 100, 100])
 grid_action['Neutral'] = fuzz.trimf(grid_action.universe, [-30, 0, 30])
 grid_action['Buy'] = fuzz.trimf(grid_action.universe, [-100, -100, -50])
 
-# ==================== FUZZY RULES (20+ RULES - DOCUMENT) ====================
+# ==================== FUZZY RULES ====================
 rules = [
     # === PEAK DEMAND MANAGEMENT ===
     ctrl.Rule(energy['High'] & battery['Critical'], [reduction['Aggressive'], grid_action['Buy']]),
@@ -605,5 +605,6 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
+
 
 
