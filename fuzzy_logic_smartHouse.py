@@ -1,4 +1,4 @@
-# app.py — NEURO-FUZZY SMART HOME - VERSION COMPLÈTE CONFORME AU DOCUMENT
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -604,4 +604,5 @@ if len(st.session_state.df_hist) > 1:
         plt.close()
 
 st.markdown("---")
+
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
