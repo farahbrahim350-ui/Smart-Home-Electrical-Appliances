@@ -29,7 +29,6 @@ if "df_hist" not in st.session_state:
     else:
         st.session_state.df_hist = pd.DataFrame(columns=expected_columns)
 
-# ==================== LSTM PREDICTION MODELS (Simulés) ====================
 def predict_energy_consumption(historical_data, temperature, hour, day_of_week, month):
     """
     Simule un modèle LSTM pour prédire la consommation d'énergie de la prochaine heure
@@ -48,7 +47,7 @@ def predict_energy_consumption(historical_data, temperature, hour, day_of_week, 
     else:
         time_factor = 1.0
     
-    # Pattern hebdomadaire (weekend vs semaine)
+    # Pattern hebdomadaire (weekend vs week)
     week_factor = 1.2 if day_of_week in [5, 6] else 1.0
     
     # Effet température (climatisation/chauffage)
@@ -86,12 +85,12 @@ def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_co
     else:
         time_factor = 0.0  # Pas de soleil la nuit
     
-    # Effet météo
+  # Weather effect
     temp_efficiency = 1.0 - max(0, (weather_temp - 25) * 0.005)  # Perte d'efficacité si trop chaud
     humidity_factor = 1.0 - (humidity / 200)  # Humidité réduit l'efficacité
     cloud_factor = 1.0 - (cloud_cover / 100) * 0.7
     
-    # Tendance historique
+   # Historical trend
     if len(historical_solar) > 0:
         trend = np.mean(historical_solar[-7:]) / base_generation
     else:
@@ -102,7 +101,7 @@ def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_co
     
     return max(0, min(100, prediction))
 
-# ==================== FUZZY VARIABLES (SELON DOCUMENT) ====================
+# ==================== FUZZY VARIABLES ====================
 # INPUTS
 energy = ctrl.Antecedent(np.arange(0, 101, 1), 'Energy_Demand')
 battery = ctrl.Antecedent(np.arange(0, 101, 1), 'Battery_Level')
@@ -606,3 +605,4 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
+
