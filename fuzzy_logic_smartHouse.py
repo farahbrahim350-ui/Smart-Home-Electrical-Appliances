@@ -530,7 +530,6 @@ if len(st.session_state.df_hist) > 1:
         a1.set_ylabel("Reduction (%)", fontweight='bold')
         a1.legend(); a1.grid(True, alpha=0.3)
         a1.set_title("Appliance Reduction: Real vs Recommended", fontweight='bold')
-
         a2.plot(dates, st.session_state.df_hist["Battery_Level"], 
                 'd-', color='#9B59B6', linewidth=2, markersize=8)
         a2.set_ylabel("Battery (%)", fontweight='bold')
@@ -612,3 +611,5 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
+
+
