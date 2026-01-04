@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -32,12 +31,10 @@ if "df_hist" not in st.session_state:
 def predict_energy_consumption(historical_data, temperature, hour, day_of_week, month):
     """
     Simule un modèle LSTM pour prédire la consommation d'énergie de la prochaine heure
-    Features: Historical consumption (24h), Temperature, Time features, Occupancy patterns, Weather conditions
     """
-    # Simulation basée sur des patterns réalistes
     base_consumption = 50
     
-    # Pattern horaire (pointe le matin et soir)
+    # Pattern horaire
     if 6 <= hour <= 9:
         time_factor = 1.3
     elif 18 <= hour <= 22:
@@ -47,35 +44,34 @@ def predict_energy_consumption(historical_data, temperature, hour, day_of_week, 
     else:
         time_factor = 1.0
     
-    # Pattern hebdomadaire (weekend vs week)
+    # Pattern hebdomadaire
     week_factor = 1.2 if day_of_week in [5, 6] else 1.0
     
-   # Temperature effect (air conditioning/heating)
+    # Effet température
     temp_factor = 1.0
     if temperature < 15:
-        temp_factor = 1.3  # Chauffage
+        temp_factor = 1.3
     elif temperature > 28:
-        temp_factor = 1.4  # Climatisation
+        temp_factor = 1.4
     
-    # Tendance historique (average of the last 24 hours)
+    # Tendance historique
     if len(historical_data) > 0:
         trend = np.mean(historical_data[-24:]) / base_consumption
     else:
         trend = 1.0
     
     prediction = base_consumption * time_factor * week_factor * temp_factor * trend
-    prediction += np.random.normal(0, 5)  # Petit bruit
+    prediction += np.random.normal(0, 5)
     
     return max(0, min(100, prediction))
 
 def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_cover, historical_solar):
     """
-    Simule un modèle LSTM pour prédire la génération solaire de la prochaine heure
-    Features: Weather forecast, Time/season, Historical solar output, Cloud cover, Solar irradiance, Panel efficiency
+    Simule un modèle LSTM pour prédire la génération solaire
     """
     base_generation = 60
     
-# Solar pattern according to the time
+    # Solar pattern
     if 6 <= hour <= 8:
         time_factor = 0.4
     elif 9 <= hour <= 16:
@@ -83,14 +79,14 @@ def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_co
     elif 17 <= hour <= 19:
         time_factor = 0.5
     else:
-        time_factor = 0.0  # Pas de soleil la nuit
+        time_factor = 0.0
     
-  # Weather effect
-    temp_efficiency = 1.0 - max(0, (weather_temp - 25) * 0.005)  # Perte d'efficacité si trop chaud
-    humidity_factor = 1.0 - (humidity / 200)  # Humidité réduit l'efficacité
+    # Weather effect
+    temp_efficiency = 1.0 - max(0, (weather_temp - 25) * 0.005)
+    humidity_factor = 1.0 - (humidity / 200)
     cloud_factor = 1.0 - (cloud_cover / 100) * 0.7
     
-   # Historical trend
+    # Historical trend
     if len(historical_solar) > 0:
         trend = np.mean(historical_solar[-7:]) / base_generation
     else:
@@ -103,106 +99,131 @@ def predict_solar_generation(weather_temp, humidity, hour, solar_angle, cloud_co
 
 # ==================== FUZZY VARIABLES ====================
 # INPUTS
-energy = ctrl.Antecedent(np.arange(0, 101, 1), 'Energy_Demand')
-battery = ctrl.Antecedent(np.arange(0, 101, 1), 'Battery_Level')
-price = ctrl.Antecedent(np.arange(0, 101, 1), 'Grid_Price')
-hour_var = ctrl.Antecedent(np.arange(0, 25, 1), 'Hour')
-solar = ctrl.Antecedent(np.arange(0, 101, 1), 'Solar_Generation')
+energy_demand = ctrl.Antecedent(np.arange(0, 101, 1), 'energy_demand')
+battery_level = ctrl.Antecedent(np.arange(0, 101, 1), 'battery_level')
+grid_price = ctrl.Antecedent(np.arange(0, 101, 1), 'grid_price')
+hour_of_day = ctrl.Antecedent(np.arange(0, 25, 1), 'hour_of_day')
+solar_generation = ctrl.Antecedent(np.arange(0, 101, 1), 'solar_generation')
 
 # OUTPUTS
-reduction = ctrl.Consequent(np.arange(0, 101, 1), 'Appliance_Reduction')
-battery_action = ctrl.Consequent(np.arange(-100, 101, 1), 'Battery_Action')
-grid_action = ctrl.Consequent(np.arange(-100, 101, 1), 'Grid_Action')
+appliance_reduction = ctrl.Consequent(np.arange(0, 101, 1), 'appliance_reduction')
+battery_control = ctrl.Consequent(np.arange(-100, 101, 1), 'battery_control')
+grid_control = ctrl.Consequent(np.arange(-100, 101, 1), 'grid_control')
 
 # ==================== MEMBERSHIP FUNCTIONS  ====================
 
-# Energy Demand (0-100 scale)
-energy['Low'] = fuzz.trimf(energy.universe, [0, 0, 30])
-energy['Medium'] = fuzz.trimf(energy.universe, [20, 50, 80])
-energy['High'] = fuzz.trimf(energy.universe, [70, 100, 100])
+# Energy Demand
+energy_demand['Low'] = fuzz.trimf(energy_demand.universe, [0, 0, 30])
+energy_demand['Medium'] = fuzz.trimf(energy_demand.universe, [20, 50, 80])
+energy_demand['High'] = fuzz.trimf(energy_demand.universe, [70, 100, 100])
 
-# Solar Generation (0-100 scale)
-solar['Poor'] = fuzz.trimf(solar.universe, [0, 0, 30])
-solar['Moderate'] = fuzz.trimf(solar.universe, [20, 50, 80])
-solar['Excellent'] = fuzz.trimf(solar.universe, [70, 100, 100])
+# Solar Generation
+solar_generation['Poor'] = fuzz.trimf(solar_generation.universe, [0, 0, 30])
+solar_generation['Moderate'] = fuzz.trimf(solar_generation.universe, [20, 50, 80])
+solar_generation['Excellent'] = fuzz.trimf(solar_generation.universe, [70, 100, 100])
 
-# Battery Level (0-100 scale)
-battery['Critical'] = fuzz.trimf(battery.universe, [0, 0, 20])
-battery['Low'] = fuzz.trimf(battery.universe, [10, 30, 50])
-battery['Medium'] = fuzz.trimf(battery.universe, [40, 60, 80])
-battery['High'] = fuzz.trimf(battery.universe, [70, 100, 100])
+# Battery Level
+battery_level['Critical'] = fuzz.trimf(battery_level.universe, [0, 0, 20])
+battery_level['Low'] = fuzz.trimf(battery_level.universe, [10, 30, 50])
+battery_level['Medium'] = fuzz.trimf(battery_level.universe, [40, 60, 80])
+battery_level['High'] = fuzz.trimf(battery_level.universe, [70, 100, 100])
 
-# Grid Price (0-100 scale)
-price['Cheap'] = fuzz.trimf(price.universe, [0, 0, 30])
-price['Normal'] = fuzz.trimf(price.universe, [20, 50, 80])
-price['Expensive'] = fuzz.trimf(price.universe, [70, 100, 100])
+# Grid Price
+grid_price['Cheap'] = fuzz.trimf(grid_price.universe, [0, 0, 30])
+grid_price['Normal'] = fuzz.trimf(grid_price.universe, [20, 50, 80])
+grid_price['Expensive'] = fuzz.trimf(grid_price.universe, [70, 100, 100])
 
-# Time of Day (0-24 scale)
-hour_var['Night1'] = fuzz.trimf(hour_var.universe, [0, 3, 6])
-hour_var['Night2'] = fuzz.trimf(hour_var.universe, [22, 23, 24])
-hour_var['Morning'] = fuzz.trapmf(hour_var.universe, [6, 8, 10, 12])
-hour_var['Afternoon'] = fuzz.trapmf(hour_var.universe, [12, 14, 16, 18])
-hour_var['Evening'] = fuzz.trimf(hour_var.universe, [18, 20, 22])
+# Time of Day
+hour_of_day['Night1'] = fuzz.trimf(hour_of_day.universe, [0, 3, 6])
+hour_of_day['Night2'] = fuzz.trimf(hour_of_day.universe, [22, 23, 24])
+hour_of_day['Morning'] = fuzz.trapmf(hour_of_day.universe, [6, 8, 10, 12])
+hour_of_day['Afternoon'] = fuzz.trapmf(hour_of_day.universe, [12, 14, 16, 18])
+hour_of_day['Evening'] = fuzz.trimf(hour_of_day.universe, [18, 20, 22])
 
-# Appliance Reduction (0-100 scale)
-reduction['None'] = fuzz.trimf(reduction.universe, [0, 0, 20])
-reduction['Slight'] = fuzz.trimf(reduction.universe, [10, 30, 50])
-reduction['Moderate'] = fuzz.trimf(reduction.universe, [40, 60, 80])
-reduction['Aggressive'] = fuzz.trimf(reduction.universe, [70, 100, 100])
+# Appliance Reduction
+appliance_reduction['None'] = fuzz.trimf(appliance_reduction.universe, [0, 0, 20])
+appliance_reduction['Slight'] = fuzz.trimf(appliance_reduction.universe, [10, 30, 50])
+appliance_reduction['Moderate'] = fuzz.trimf(appliance_reduction.universe, [40, 60, 80])
+appliance_reduction['Aggressive'] = fuzz.trimf(appliance_reduction.universe, [70, 100, 100])
 
-# Battery Action (-100 to 100 scale)
-battery_action['Discharge'] = fuzz.trimf(battery_action.universe, [-100, -100, -50])
-battery_action['Maintain'] = fuzz.trimf(battery_action.universe, [-30, 0, 30])
-battery_action['Charge'] = fuzz.trimf(battery_action.universe, [50, 100, 100])
+# Battery Action
+battery_control['Discharge'] = fuzz.trimf(battery_control.universe, [-100, -100, -50])
+battery_control['Maintain'] = fuzz.trimf(battery_control.universe, [-30, 0, 30])
+battery_control['Charge'] = fuzz.trimf(battery_control.universe, [50, 100, 100])
 
-# Grid Interaction (-100 to 100 scale)
-grid_action['Sell'] = fuzz.trimf(grid_action.universe, [50, 100, 100])
-grid_action['Neutral'] = fuzz.trimf(grid_action.universe, [-30, 0, 30])
-grid_action['Buy'] = fuzz.trimf(grid_action.universe, [-100, -100, -50])
+# Grid Interaction
+grid_control['Sell'] = fuzz.trimf(grid_control.universe, [50, 100, 100])
+grid_control['Neutral'] = fuzz.trimf(grid_control.universe, [-30, 0, 30])
+grid_control['Buy'] = fuzz.trimf(grid_control.universe, [-100, -100, -50])
 
 # ==================== FUZZY RULES ====================
 rules = [
     # === PEAK DEMAND MANAGEMENT ===
-    ctrl.Rule(energy['High'] & battery['Critical'], [reduction['Aggressive'], grid_action['Buy']]),
-    ctrl.Rule(energy['High'] & price['Expensive'], [reduction['Aggressive'], battery_action['Discharge']]),
-    ctrl.Rule(energy['High'] & hour_var['Evening'], [reduction['Moderate'], battery_action['Discharge']]),
-    ctrl.Rule(energy['Low'] & battery['High'], [reduction['None'], grid_action['Sell']]),
+    ctrl.Rule(energy_demand['High'] & battery_level['Critical'], 
+              [appliance_reduction['Aggressive'], grid_control['Buy']]),
+    ctrl.Rule(energy_demand['High'] & grid_price['Expensive'], 
+              [appliance_reduction['Aggressive'], battery_control['Discharge']]),
+    ctrl.Rule(energy_demand['High'] & hour_of_day['Evening'], 
+              [appliance_reduction['Moderate'], battery_control['Discharge']]),
+    ctrl.Rule(energy_demand['Low'] & battery_level['High'], 
+              [appliance_reduction['None'], grid_control['Sell']]),
     
     # === SOLAR ENERGY OPTIMIZATION ===
-    ctrl.Rule(solar['Excellent'] & battery['Low'], [battery_action['Charge'], reduction['Slight']]),
-    ctrl.Rule(solar['Excellent'] & battery['High'], [grid_action['Sell'], reduction['None']]),
-    ctrl.Rule(solar['Excellent'] & energy['Low'], [battery_action['Charge'], grid_action['Sell']]),
-    ctrl.Rule(solar['Poor'] & energy['High'], [reduction['Aggressive'], grid_action['Buy']]),
-    ctrl.Rule(solar['Moderate'] & battery['Medium'], [battery_action['Maintain'], reduction['Slight']]),
+    ctrl.Rule(solar_generation['Excellent'] & battery_level['Low'], 
+              [battery_control['Charge'], appliance_reduction['Slight']]),
+    ctrl.Rule(solar_generation['Excellent'] & battery_level['High'], 
+              [grid_control['Sell'], appliance_reduction['None']]),
+    ctrl.Rule(solar_generation['Excellent'] & energy_demand['Low'], 
+              [battery_control['Charge'], grid_control['Sell']]),
+    ctrl.Rule(solar_generation['Poor'] & energy_demand['High'], 
+              [appliance_reduction['Aggressive'], grid_control['Buy']]),
+    ctrl.Rule(solar_generation['Moderate'] & battery_level['Medium'], 
+              [battery_control['Maintain'], appliance_reduction['Slight']]),
     
     # === BATTERY MANAGEMENT STRATEGY ===
-    ctrl.Rule(battery['Critical'], [battery_action['Charge'], reduction['Aggressive'], grid_action['Buy']]),
-    ctrl.Rule(battery['Low'] & price['Cheap'], [battery_action['Charge'], grid_action['Buy']]),
-    ctrl.Rule(battery['High'] & price['Expensive'], [battery_action['Discharge'], grid_action['Sell']]),
-    ctrl.Rule(battery['Medium'] & solar['Excellent'], [battery_action['Charge'], reduction['Slight']]),
-    ctrl.Rule(battery['High'] & energy['Low'], [grid_action['Sell'], reduction['None']]),
+    ctrl.Rule(battery_level['Critical'], 
+              [battery_control['Charge'], appliance_reduction['Aggressive'], grid_control['Buy']]),
+    ctrl.Rule(battery_level['Low'] & grid_price['Cheap'], 
+              [battery_control['Charge'], grid_control['Buy']]),
+    ctrl.Rule(battery_level['High'] & grid_price['Expensive'], 
+              [battery_control['Discharge'], grid_control['Sell']]),
+    ctrl.Rule(battery_level['Medium'] & solar_generation['Excellent'], 
+              [battery_control['Charge'], appliance_reduction['Slight']]),
+    ctrl.Rule(battery_level['High'] & energy_demand['Low'], 
+              [grid_control['Sell'], appliance_reduction['None']]),
     
     # === GRID INTERACTION DECISIONS ===
-    ctrl.Rule(price['Cheap'] & battery['Low'], [grid_action['Buy'], battery_action['Charge']]),
-    ctrl.Rule(price['Expensive'] & battery['High'], [grid_action['Sell'], reduction['Moderate']]),
-    ctrl.Rule(price['Expensive'] & energy['High'], [reduction['Aggressive'], battery_action['Discharge']]),
-    ctrl.Rule(price['Normal'] & battery['Medium'], [grid_action['Neutral'], reduction['Slight']]),
+    ctrl.Rule(grid_price['Cheap'] & battery_level['Low'], 
+              [grid_control['Buy'], battery_control['Charge']]),
+    ctrl.Rule(grid_price['Expensive'] & battery_level['High'], 
+              [grid_control['Sell'], appliance_reduction['Moderate']]),
+    ctrl.Rule(grid_price['Expensive'] & energy_demand['High'], 
+              [appliance_reduction['Aggressive'], battery_control['Discharge']]),
+    ctrl.Rule(grid_price['Normal'] & battery_level['Medium'], 
+              [grid_control['Neutral'], appliance_reduction['Slight']]),
     
     # === EMERGENCY SCENARIOS ===
-    ctrl.Rule(battery['Critical'] & price['Expensive'], [reduction['Aggressive'], grid_action['Buy']]),
-    ctrl.Rule(solar['Poor'] & battery['Low'] & energy['High'], [reduction['Aggressive'], grid_action['Buy']]),
-    ctrl.Rule(hour_var['Evening'] & energy['High'] & battery['Low'], [reduction['Moderate'], grid_action['Buy']]),
+    ctrl.Rule(battery_level['Critical'] & grid_price['Expensive'], 
+              [appliance_reduction['Aggressive'], grid_control['Buy']]),
+    ctrl.Rule(solar_generation['Poor'] & battery_level['Low'] & energy_demand['High'], 
+              [appliance_reduction['Aggressive'], grid_control['Buy']]),
+    ctrl.Rule(hour_of_day['Evening'] & energy_demand['High'] & battery_level['Low'], 
+              [appliance_reduction['Moderate'], grid_control['Buy']]),
     
     # === TIME-BASED RULES ===
-    ctrl.Rule((hour_var['Night1'] | hour_var['Night2']) & battery['High'], [grid_action['Sell'], reduction['Slight']]),
-    ctrl.Rule(hour_var['Morning'] & solar['Excellent'], [battery_action['Charge'], reduction['None']]),
-    ctrl.Rule(hour_var['Afternoon'] & solar['Excellent'], [grid_action['Sell'], battery_action['Charge']]),
-    ctrl.Rule(hour_var['Evening'] & energy['High'], [reduction['Moderate'], battery_action['Discharge']]),
+    ctrl.Rule((hour_of_day['Night1'] | hour_of_day['Night2']) & battery_level['High'], 
+              [grid_control['Sell'], appliance_reduction['Slight']]),
+    ctrl.Rule(hour_of_day['Morning'] & solar_generation['Excellent'], 
+              [battery_control['Charge'], appliance_reduction['None']]),
+    ctrl.Rule(hour_of_day['Afternoon'] & solar_generation['Excellent'], 
+              [grid_control['Sell'], battery_control['Charge']]),
+    ctrl.Rule(hour_of_day['Evening'] & energy_demand['High'], 
+              [appliance_reduction['Moderate'], battery_control['Discharge']]),
     
     # === DEFAULT RULES ===
-    ctrl.Rule(energy['Medium'], reduction['Slight']),
-    ctrl.Rule(battery['Medium'], battery_action['Maintain']),
-    ctrl.Rule(price['Normal'], grid_action['Neutral']),
+    ctrl.Rule(energy_demand['Medium'], appliance_reduction['Slight']),
+    ctrl.Rule(battery_level['Medium'], battery_control['Maintain']),
+    ctrl.Rule(grid_price['Normal'], grid_control['Neutral']),
 ]
 
 system = ctrl.ControlSystem(rules)
@@ -251,24 +272,22 @@ with st.sidebar:
 
             if st.form_submit_button("💾 Save Experiment", use_container_width=True):
                 try:
-                    # Prédictions LSTM
                     hist_energy = st.session_state.df_hist['Energy_Demand'].tolist() if len(st.session_state.df_hist) > 0 else []
                     hist_solar = st.session_state.df_hist['Solar_Generation'].tolist() if len(st.session_state.df_hist) > 0 else []
                     
                     energy_pred = predict_energy_consumption(hist_energy, temp_in, h_in, datetime.now().weekday(), datetime.now().month)
                     solar_pred = predict_solar_generation(temp_in, hum_in, h_in, 45, 20, hist_solar)
                     
-                    # Calcul Fuzzy
-                    sim.input['Energy_Demand'] = e_in
-                    sim.input['Battery_Level'] = b_in
-                    sim.input['Grid_Price'] = p_in
-                    sim.input['Hour'] = h_in
-                    sim.input['Solar_Generation'] = s_in
+                    sim.input['energy_demand'] = e_in
+                    sim.input['battery_level'] = b_in
+                    sim.input['grid_price'] = p_in
+                    sim.input['hour_of_day'] = h_in
+                    sim.input['solar_generation'] = s_in
                     sim.compute()
                     
-                    rec_red = sim.output['Appliance_Reduction']
-                    rec_ba = sim.output['Battery_Action']
-                    rec_ga = sim.output['Grid_Action']
+                    rec_red = sim.output['appliance_reduction']
+                    rec_ba = sim.output['battery_control']
+                    rec_ga = sim.output['grid_control']
                 except Exception as e:
                     st.error(f"Error: {e}")
                     rec_red = rec_ba = rec_ga = energy_pred = solar_pred = 0.0
@@ -303,7 +322,6 @@ st.title("⚡ Neuro-Fuzzy Smart Home Energy Manager")
 st.markdown("Farah Brahim • ISET Bizerte")
 st.markdown("*Hybrid AI system combining LSTM Neural Networks and Fuzzy Logic for intelligent energy management*")
 
-# System Architecture Overview
 with st.expander("🔍 System Architecture Overview"):
     st.markdown("""
     ### Hybrid AI System Components:
@@ -331,7 +349,6 @@ with col_pred1:
         
         if st.form_submit_button("Predict Energy", use_container_width=True):
             hist_data = st.session_state.df_hist['Energy_Demand'].tolist() if len(st.session_state.df_hist) > 0 else []
-            # Utiliser hour_pred au lieu de datetime.now().hour
             simulated_date_pred = datetime.now().replace(hour=hour_pred, minute=0, second=0, microsecond=0)
             pred = predict_energy_consumption(hist_data, temp_pred, hour_pred, simulated_date_pred.weekday(), simulated_date_pred.month)
             st.metric("Predicted Energy Demand", f"{pred:.1f} %", delta=f"{pred - 50:.1f}%")
@@ -346,7 +363,6 @@ with col_pred2:
         
         if st.form_submit_button("Predict Solar", use_container_width=True):
             hist_solar = st.session_state.df_hist['Solar_Generation'].tolist() if len(st.session_state.df_hist) > 0 else []
-            # Utiliser hour_solar au lieu de datetime.now().hour
             pred = predict_solar_generation(temp_solar, hum_solar, hour_solar, 45, 20, hist_solar)
             st.metric("Predicted Solar Generation", f"{pred:.1f} %", delta=f"{pred - 50:.1f}%")
 
@@ -361,12 +377,11 @@ with col1:
     battery_val = st.slider("Battery Level (%)", 0, 100, 25, key="main_b")
     solar_val = st.slider("Solar Generation (%)", 0, 100, 60, key="main_s")
     price_val = st.slider("Grid Price (0=cheap → 100=expensive)", 0, 100, 95, key="main_p")
-    time_val = st.slider("Hour of Day (0-24)", 0, 23, 19, key="main_t")
+    time_val = st.slider("Hour of Day (0-23)", 0, 23, 19, key="main_t")
 
 with col2:
     st.subheader("💡 Fuzzy Logic Recommendations")
     
-    # Add temperature and humidity inputs for predictions
     col_extra1, col_extra2 = st.columns(2)
     with col_extra1:
         temp_current = st.number_input("Temperature (°C)", -10, 45, 22, key="curr_temp")
@@ -375,12 +390,9 @@ with col2:
     
     if st.button("🔄 Calculate & Save", type="primary", use_container_width=True):
         try:
-            # LSTM Predictions - utiliser l'heure du slider
             hist_energy = st.session_state.df_hist['Energy_Demand'].tolist() if len(st.session_state.df_hist) > 0 else []
             hist_solar = st.session_state.df_hist['Solar_Generation'].tolist() if len(st.session_state.df_hist) > 0 else []
             
-            # Calculer le jour de la semaine et le mois basés sur l'heure simulée
-            # Pour la simulation, on utilise une date de base
             simulated_date = datetime.now().replace(hour=time_val, minute=0, second=0, microsecond=0)
             day_of_week = simulated_date.weekday()
             month = simulated_date.month
@@ -388,20 +400,17 @@ with col2:
             energy_pred = predict_energy_consumption(hist_energy, temp_current, time_val, day_of_week, month)
             solar_pred = predict_solar_generation(temp_current, hum_current, time_val, 45, 20, hist_solar)
             
-            # Fuzzy Logic Calculations
-            sim.input['Energy_Demand'] = energy_val
-            sim.input['Battery_Level'] = battery_val
-            sim.input['Grid_Price'] = price_val
-            sim.input['Hour'] = time_val
-            sim.input['Solar_Generation'] = solar_val
+            sim.input['energy_demand'] = energy_val
+            sim.input['battery_level'] = battery_val
+            sim.input['grid_price'] = price_val
+            sim.input['hour_of_day'] = time_val
+            sim.input['solar_generation'] = solar_val
             sim.compute()
             
-            red = sim.output['Appliance_Reduction']
-            ba = sim.output['Battery_Action']
-            ga = sim.output['Grid_Action']
+            red = sim.output['appliance_reduction']
+            ba = sim.output['battery_control']
+            ga = sim.output['grid_control']
             
-            # Save to history automatically - utiliser une date personnalisée
-            # Créer un timestamp basé sur l'heure du slider
             custom_timestamp = datetime.now().replace(hour=time_val, minute=0, second=0, microsecond=0)
             
             new_entry = pd.DataFrame([{
@@ -413,7 +422,7 @@ with col2:
                 "Solar_Generation": solar_val,
                 "Temperature": temp_current,
                 "Humidity": hum_current,
-                "Appliance_Reduction_real": red,  # Using fuzzy output as baseline
+                "Appliance_Reduction_real": red,
                 "Appliance_Reduction_rec": round(red, 1),
                 "Battery_Action_rec": round(ba, 1),
                 "Grid_Action_rec": round(ga, 1),
@@ -426,7 +435,6 @@ with col2:
             
             st.success("✅ Calculation successful & saved to history!")
             
-            # Display results
             col_res1, col_res2, col_res3 = st.columns(3)
             
             with col_res1:
@@ -452,7 +460,6 @@ with col2:
                 st.metric("Grid Action", grid_act)
                 st.info(f"☀️ Solar prediction: {solar_pred:.1f}%")
             
-            # Rerun to update the display
             st.rerun()
             
         except Exception as e:
@@ -474,27 +481,27 @@ ax6 = fig.add_subplot(gs[2, 1])
 ax7 = fig.add_subplot(gs[3, 0])
 ax8 = fig.add_subplot(gs[3, 1])
 
-plot_membership_function(energy, ax1, energy_val, "Energy Demand (0-100 scale)")
-plot_membership_function(battery, ax2, battery_val, "Battery Level (0-100 scale)")
-plot_membership_function(solar, ax3, solar_val, "Solar Generation (0-100 scale)")
-plot_membership_function(price, ax4, price_val, "Grid Price (0-100 scale)")
-plot_membership_function(hour_var, ax5, time_val, "Time of Day (0-24 scale)")
+plot_membership_function(energy_demand, ax1, energy_val, "Energy Demand (0-100 scale)")
+plot_membership_function(battery_level, ax2, battery_val, "Battery Level (0-100 scale)")
+plot_membership_function(solar_generation, ax3, solar_val, "Solar Generation (0-100 scale)")
+plot_membership_function(grid_price, ax4, price_val, "Grid Price (0-100 scale)")
+plot_membership_function(hour_of_day, ax5, time_val, "Time of Day (0-24 scale)")
 
-plot_membership_function(reduction, ax6, None, "Appliance Reduction (0-100)")
-plot_membership_function(battery_action, ax7, None, "Battery Action (-100 to 100)")
-plot_membership_function(grid_action, ax8, None, "Grid Interaction (-100 to 100)")
+plot_membership_function(appliance_reduction, ax6, None, "Appliance Reduction (0-100)")
+plot_membership_function(battery_control, ax7, None, "Battery Action (-100 to 100)")
+plot_membership_function(grid_control, ax8, None, "Grid Interaction (-100 to 100)")
 
 try:
-    sim.input['Energy_Demand'] = energy_val
-    sim.input['Battery_Level'] = battery_val
-    sim.input['Grid_Price'] = price_val
-    sim.input['Hour'] = time_val
-    sim.input['Solar_Generation'] = solar_val
+    sim.input['energy_demand'] = energy_val
+    sim.input['battery_level'] = battery_val
+    sim.input['grid_price'] = price_val
+    sim.input['hour_of_day'] = time_val
+    sim.input['solar_generation'] = solar_val
     sim.compute()
     
-    ax6.axvline(sim.output['Appliance_Reduction'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["Appliance_Reduction"]:.1f}%')
-    ax7.axvline(sim.output['Battery_Action'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["Battery_Action"]:.1f}')
-    ax8.axvline(sim.output['Grid_Action'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["Grid_Action"]:.1f}')
+    ax6.axvline(sim.output['appliance_reduction'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["appliance_reduction"]:.1f}%')
+    ax7.axvline(sim.output['battery_control'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["battery_control"]:.1f}')
+    ax8.axvline(sim.output['grid_control'], color='darkred', linewidth=3, linestyle=':', label=f'Output: {sim.output["grid_control"]:.1f}')
     
     ax6.legend(loc='upper right', fontsize=9)
     ax7.legend(loc='upper right', fontsize=9)
@@ -605,7 +612,3 @@ if len(st.session_state.df_hist) > 1:
 st.markdown("---")
 
 st.caption("© Farah BRAHIM – Neuro-Fuzzy Smart Home Project – Dept. EE @ ISET Bizerte – 2025")
-
-
-
-
